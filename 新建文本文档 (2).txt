@@ -1,0 +1,96 @@
+---
+title: "歐洲各國21世紀教育水平對比分析（付與移民傾向的聯合分析）"
+output: github_document
+---
+
+##分析議題背景（陳堯奕）
+歐洲28國在進入21世紀對本國教育方面的重視程度及教育水平的變化，并將其移民傾向做對比。
+
+##分析動機
+我對歐洲近年來的一系列難民問題有一定的興趣，了解了一些各國移民的信息。同時在搜索資料的過程中也看到了不少關於各國教育方面有意思的數據。所以藉此機會我想對此進行分析，可能的話還可以找出一些兩者之間的關係。
+
+##使用資料
+資料來源為世界銀行網站，資料記錄了歐洲大部分國家21世紀的各項教育與移民數據。包括幼儿接受教育率、年度公共教育支出(Million PPS)、平均对每名学生的教育支出(PPS)、	本国国际学生（大学）人员流动性、中等教育水平学生平均掌握外语数、	教育支出占国家年度总GDP百分比、应届毕业生就业率率、国民终生受教育率、	20至24岁拥有高中学历人数比例、30至34岁拥有大学学历人数比例、Immigration、Emigration、Net Migration、Total Migration等。
+
+載入使用資料
+```{r}
+library(readxl)
+ed1 <- read_excel("F:/大学课程/大数据/移民/教育综合1.xls")
+ed2 <- read_excel("F:/大学课程/大数据/移民/教育综合2.xls")
+ed3 <- read_excel("F:/大学课程/大数据/移民/个人受教育后就业率.xls")
+ed4 <- read_excel("F:/大学课程/大数据/移民/移民表格已整理.xlsx")
+
+```
+
+##資料處理與清洗
+由於資料都是單獨搜索下載的，所以在Excel當中我事先整合處理了一下，寬表轉換成長表，共整理出4個表格。在RStudio當中把這4個表格整合為一份以便分析，並把所有欄位都轉換成數值。因為還未確定具體要分析的議題，所以整合是所有欄位和記錄都有保存（有空值的記錄先不處理）。還有部分資料處理為了方便我放在探索式資料分分析版塊。
+
+處理資料
+```{r}
+library(dplyr)
+library(reshape2)
+library(ggplot2) 
+ed<-merge(ed1,ed2,all = T)
+ed<-merge(ed,ed3,all = T)
+ed<-merge(ed,ed4,all = T)
+ed$'本国国际学生（大学）人员流动性'<-as.numeric(ed$'本国国际学生（大学）人员流动性')
+ed$`学生出国留学（大学）人员流动性`<-as.numeric(ed$`学生出国留学（大学）人员流动性`)
+ed$'20至24岁拥有高中学历人数比例'<-as.numeric(ed$'20至24岁拥有高中学历人数比例')
+ed$`30至34岁拥有大学学历人数比例`<-as.numeric(ed$`30至34岁拥有大学学历人数比例`)
+ed$Immigration<-as.numeric(ed$Immigration)
+ed$Emigration<-as.numeric(ed$Emigration)
+ed$幼儿接受教育率<-as.numeric(ed$幼儿接受教育率)
+ed$`年度公共教育支出(Million PPS)`<-as.numeric(ed$`年度公共教育支出(Million PPS)`)
+ed$`平均对每名学生的教育支出(PPS)`<-as.numeric(ed$`平均对每名学生的教育支出(PPS)`)
+ed$国小师生比率<-as.numeric(ed$国小师生比率)
+ed$中等教育水平学生平均掌握外语数<-as.numeric(ed$中等教育水平学生平均掌握外语数)
+ed$教育支出占国家年度总GDP百分百<-as.numeric(ed$教育支出占国家年度总GDP百分百)
+ed$应届毕业生就业率<-as.numeric(ed$应届毕业生就业率)
+ed$国民终生受教育率<-as.numeric(ed$国民终生受教育率)
+ed$个人受教育后就业率<-as.numeric(ed$个人受教育后就业率)
+ed$在读大学生平均年龄<-as.numeric(ed$在读大学生平均年龄)
+knitr::kable(ed[233:248,])
+```
+
+資料量較大，這裡象征性的顯示其中幾筆資料（丹麥）。
+
+##探索式資料分析
+
+```{r}
+年均人口流動總數<-group_by(ed,Country)%>%
+  summarise(年均人口流動總數=mean(`Total Migration`,na.rm=T)) %>%
+  arrange(desc(年均人口流動總數))
+knitr::kable(年均人口流動總數)
+
+歐盟28國平均數據<-filter(ed,Country %in%"EU (28 countries)")
+for(i in 3:15){
+歐盟28國平均數據[i]<-mean(歐盟28國平均數據[,i],na.rm = T)
+}
+knitr::kable(歐盟28國平均數據[1,-c(2,4,7,9,16,17,18,19,20,21)])
+
+歐洲5國數據<-filter(ed,Country %in% c('Germany','United Kingdom','Spain',"France","Italy"))
+歐洲5國平均數據<-group_by(歐洲5國數據,Country)%>%summarise(幼儿接受教育率=mean(幼儿接受教育率,na.rm=T),'年度公共教育支出(Million PPS)'=mean(`年度公共教育支出(Million PPS)`,na.rm=T),'平均对每名学生的教育支出(PPS)'=mean(`平均对每名学生的教育支出(PPS)`,na.rm=T),`本国国际学生（大学）人员流动性`=mean(`本国国际学生（大学）人员流动性`,na.rm=T),中等教育水平学生平均掌握外语数=mean(中等教育水平学生平均掌握外语数,na.rm=T),教育支出占国家年度总GDP百分比=mean(教育支出占国家年度总GDP百分百,na.rm=T),应届毕业生就业率=mean(应届毕业生就业率,na.rm=T),国民终生受教育率=mean(国民终生受教育率,na.rm=T),'20至24岁拥有高中学历人数比例'=mean(`20至24岁拥有高中学历人数比例`,na.rm=T),'30至34岁拥有大学学历人数比例'=mean(`30至34岁拥有大学学历人数比例`,na.rm=T),Immigration=mean(Immigration,na.rm=T),Emigration=mean(Emigration,na.rm=T),'Net Migration'=mean(`Net Migration`,na.rm=T),'Total Migration'=mean(`Total Migration`,na.rm=T),个人受教育后就业率=mean(个人受教育后就业率,na.rm=T),在读大学生平均年龄=mean(在读大学生平均年龄,na.rm=T),`学生出国留学（大学）人员流动性`=mean(`学生出国留学（大学）人员流动性`,na.rm=T),国小师生比率=mean(国小师生比率,na.rm=T))
+knitr::kable(歐洲5國平均數據)
+
+歐洲5國數據_長表<-melt(歐洲5國數據,id.vars = c("Country","Year"))
+#ggplot(歐洲5國數據, 
+#       aes(x = Year, 
+#           y = 应届毕业生就业率)) + 
+#    geom_point()+
+#  facet_grid(Country~.)+
+#    geom_smooth()
+ggplot(filter(歐洲5國數據_長表,variable%in%"应届毕业生就业率",Year>2003), 
+       aes(x = Year, 
+           y = value,colour=Country),title(main ="5國应届毕业生就业率變化趨勢"))+   
+    geom_point()+geom_smooth()
+```
+
+在歐洲人員流動量最大的是德國、英國、西班牙、法國和意大利。因為歐洲國家較多，所以教育與移民的關係分析大致會以這5個國家為例。
+
+列出歐洲28國的平均教育數據。
+
+德國、英國、西班牙、法國、意大利五國的各項年平均數據,這裡舉例先列出5國应届毕业生就业率變化趨勢。
+
+##期末專題分析規劃
+
+期末專題要分析歐洲教育水平的變化，不同教育數據對彼此的影響，以及各國（主要是移民5大國）教育水平與其移民傾向的關係。
